@@ -1,101 +1,567 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Web Crawler Multithreading</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Crawler Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body class="bg-gray-900 text-gray-100 font-sans min-h-screen flex flex-col items-center p-6">
+  <style>
+    :root {
+      --bg-primary: #0a0e27;
+      --bg-secondary: #121829;
+      --bg-tertiary: #1a1f3a;
+      --border-color: #2a3055;
+      --text-primary: #f0f4ff;
+      --text-secondary: #b0b8d4;
+      --accent-primary: #00d9ff;
+      --accent-secondary: #6366f1;
+      --accent-tertiary: #8b5cf6;
+      --success: #10b981;
+      --error: #ff6b6b;
+      --warning: #fbbf24;
+    }
 
-  <!-- Header -->
-  <header class="text-center mb-10">
-    <h1 class="text-4xl font-bold text-cyan-400 mb-2">🕸️ Web Crawler Multithreading</h1>
-    <p class="text-gray-400">Perbandingan waktu eksekusi single-thread vs multi-thread</p>
+    html.light {
+      --bg-primary: #f9fafb;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #f3f4f6;
+      --border-color: #e5e7eb;
+      --text-primary: #1a1a2e;
+      --text-secondary: #6b7280;
+      --accent-primary: #0891b2;
+      --accent-secondary: #6366f1;
+      --accent-tertiary: #a855f7;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+    }
+
+    * {
+      color-scheme: dark light;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color 0.3s, color 0.3s;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    }
+
+    html.light body {
+      background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+    }
+
+    .card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+
+    .card:hover {
+      border-color: var(--accent-primary);
+      box-shadow: 0 8px 32px rgba(0, 217, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    /* Improved button styling with enhanced gradient and shadow */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      color: white;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
+      transition: left 0.3s ease;
+    }
+
+    .btn-primary:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.15);
+      box-shadow: 0 12px 40px rgba(0, 217, 255, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-theme {
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .btn-theme:hover {
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+      background-color: var(--bg-secondary);
+      box-shadow: 0 4px 12px rgba(0, 217, 255, 0.1);
+    }
+
+    .text-accent {
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .text-success {
+      color: var(--success);
+    }
+
+    .text-error {
+      color: var(--error);
+    }
+
+    /* Enhanced loading spinner animation */
+    .loading-spinner {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent-primary);
+      border-right-color: var(--accent-secondary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-in-up {
+      animation: fadeInUp 0.6s ease-out;
+    }
+
+    .slide-in-down {
+      animation: slideInDown 0.6s ease-out;
+    }
+
+    .code-block {
+      background-color: var(--bg-tertiary);
+      border-left: 3px solid var(--accent-primary);
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 0.875rem;
+    }
+
+    .chart-container {
+      position: relative;
+    }
+
+    /* Premium stat card styling with gradient backgrounds */
+    .stat-card {
+      background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 120px;
+      height: 120px;
+      background: radial-gradient(circle, rgba(0, 217, 255, 0.1), transparent);
+      border-radius: 50%;
+      filter: blur(20px);
+    }
+
+    .stat-card.success {
+      border-left: 4px solid var(--success);
+    }
+
+    .stat-card.error {
+      border-left: 4px solid var(--error);
+    }
+
+    .hero-section {
+      background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 3rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(0, 217, 255, 0.15), transparent);
+      border-radius: 50%;
+      filter: blur(40px);
+    }
+
+    .hero-section::after {
+      content: '';
+      position: absolute;
+      bottom: -50%;
+      left: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(131, 92, 246, 0.1), transparent);
+      border-radius: 50%;
+      filter: blur(40px);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    @media (prefers-color-scheme: light) {
+      html:not(.light) { color-scheme: dark; }
+    }
+
+    .header-glow {
+      position: relative;
+      display: inline-block;
+    }
+
+    .header-glow::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      border-radius: 12px;
+      opacity: 0.1;
+      filter: blur(8px);
+    }
+
+    .icon-box {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    table tbody tr {
+      transition: all 0.2s ease;
+    }
+
+    table tbody tr:hover {
+      background-color: var(--bg-tertiary);
+    }
+
+    .table-status-badge {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .badge-success {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+    }
+
+    .badge-error {
+      background-color: rgba(255, 107, 107, 0.1);
+      color: var(--error);
+    }
+  </style>
+</head>
+<body class="font-sans min-h-screen flex flex-col p-4 md:p-8 lg:p-12">
+
+  <!-- Enhanced sticky header with better styling -->
+  <header class="flex items-center justify-between mb-16 sticky top-0 z-50 pb-6">
+    <div class="flex items-center gap-4 slide-in-down">
+      <div class="header-glow">
+        <div class="icon-box">⚡</div>
+      </div>
+      <div>
+        <h1 class="text-3xl md:text-4xl font-bold text-accent">Web Crawler</h1>
+        <p class="text-xs md:text-sm text-text-secondary">Multithreading Performance Dashboard</p>
+      </div>
+    </div>
+
+    <!-- Dark/Light Mode Toggle -->
+    <button id="themeToggle" class="btn-theme px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold hover:shadow-lg">
+      <span id="themeIcon" class="text-lg">🌙</span>
+      <span id="themeText" class="hidden sm:inline">Dark</span>
+    </button>
   </header>
 
-  <!-- Statistik -->
-  <section class="grid md:grid-cols-2 gap-6 w-full max-w-5xl mb-10">
-    <div class="bg-gray-800 p-6 rounded-2xl shadow-lg text-center border border-gray-700">
-      <h2 class="text-xl font-semibold text-gray-200 mb-2">Single Thread</h2>
-      <p class="text-3xl font-bold text-red-400">{{ single_time }} <span class="text-lg">detik</span></p>
-    </div>
-    <div class="bg-gray-800 p-6 rounded-2xl shadow-lg text-center border border-gray-700">
-      <h2 class="text-xl font-semibold text-gray-200 mb-2">Multi Thread</h2>
-      <p class="text-3xl font-bold text-emerald-400">{{ multi_time }} <span class="text-lg">detik</span></p>
-    </div>
-  </section>
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl mx-auto w-full">
+    
+    <!-- New hero section with better value proposition -->
+    <section class="hero-section mb-12 fade-in-up">
+      <div class="hero-content">
+        <div class="mb-4 inline-flex items-center gap-2 px-4 py-2 bg-accent-primary/10 rounded-full">
+          <span class="text-accent-primary text-sm font-semibold">⚡ Performa Real-Time</span>
+        </div>
+        <h2 class="text-3xl md:text-4xl font-bold mb-4 text-text-primary">Bandingkan Kecepatan Scraping</h2>
+        <p class="text-text-secondary text-lg max-w-2xl leading-relaxed mb-8">Analisis real-time performa single-thread vs multi-thread web scraping. Lihat peningkatan kecepatan hingga 10x lebih cepat dengan implementasi multithreading yang optimal.</p>
+        <button id="startBtn" class="btn-primary px-8 py-4 rounded-xl font-bold shadow-lg hover:shadow-2xl transition-all text-white inline-flex items-center gap-2 text-lg">
+          <span>▶</span>
+          <span>Mulai Scraping</span>
+        </button>
+      </div>
+    </section>
 
-  <!-- Grafik -->
-  <section class="bg-gray-800 rounded-2xl shadow-lg p-6 w-full max-w-5xl mb-10 border border-gray-700">
-    <h2 class="text-xl font-semibold text-gray-200 mb-4 text-center">Grafik Perbandingan Waktu</h2>
-    <canvas id="chart" height="120"></canvas>
-  </section>
-
-  <!-- Tabel hasil -->
-  <section class="bg-gray-800 rounded-2xl shadow-lg p-6 w-full max-w-5xl border border-gray-700">
-    <h2 class="text-xl font-semibold text-gray-200 mb-4 text-center">Hasil Crawling</h2>
-    <div class="overflow-x-auto">
-      <table class="min-w-full border border-gray-700">
-        <thead class="bg-gray-700 text-gray-300">
-          <tr>
-            <th class="px-4 py-2 border-b border-gray-600 text-left">URL</th>
-            <th class="px-4 py-2 border-b border-gray-600 text-left">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in multi_results %}
-          <tr class="hover:bg-gray-700 transition">
-            <td class="px-4 py-2 border-b border-gray-700">{{ r.url }}</td>
-            <td class="px-4 py-2 border-b border-gray-700">
-              {% if "berhasil" in r.status %}
-              <span class="text-emerald-400 font-semibold">{{ r.status }}</span>
-              {% else %}
-              <span class="text-red-400 font-semibold">{{ r.status }}</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <!-- Loading State -->
+    <div id="loading" class="hidden mb-12">
+      <div class="card p-8 rounded-2xl flex items-center gap-4 fade-in-up">
+        <div class="loading-spinner"></div>
+        <div>
+          <p class="font-bold text-text-primary text-lg">Sedang melakukan scraping...</p>
+          <p class="text-sm text-text-secondary">Mohon tunggu, proses sedang berjalan</p>
+        </div>
+      </div>
     </div>
-  </section>
+
+    <!-- Results Section -->
+    <section id="results" class="hidden space-y-8">
+      
+      <!-- Enhanced stat cards with better layout and styling -->
+      <div class="grid md:grid-cols-2 gap-6 fade-in-up">
+        <div class="stat-card error p-8 rounded-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <p class="text-sm font-semibold text-text-secondary uppercase tracking-widest mb-2">Single Thread</p>
+              <p id="singleTime" class="text-5xl font-black text-error">-</p>
+            </div>
+            <span class="text-4xl">🐢</span>
+          </div>
+          <p class="text-xs text-text-secondary">Eksekusi Serial • Kecepatan Normal</p>
+          <div class="mt-4 h-1 bg-error/20 rounded-full overflow-hidden">
+            <div class="h-full bg-error" style="width: 33%;"></div>
+          </div>
+        </div>
+
+        <div class="stat-card success p-8 rounded-2xl">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <p class="text-sm font-semibold text-text-secondary uppercase tracking-widest mb-2">Multi Thread</p>
+              <p id="multiTime" class="text-5xl font-black text-success">-</p>
+            </div>
+            <span class="text-4xl">🚀</span>
+          </div>
+          <p class="text-xs text-text-secondary">Eksekusi Paralel • Kecepatan Optimal</p>
+          <div class="mt-4 h-1 bg-success/20 rounded-full overflow-hidden">
+            <div class="h-full bg-success" style="width: 85%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart Section -->
+      <div class="card p-8 rounded-2xl fade-in-up">
+        <div class="mb-8">
+          <h2 class="text-2xl font-bold text-text-primary mb-2">Perbandingan Performa</h2>
+          <p class="text-text-secondary text-sm">Visualisasi perbedaan waktu eksekusi antara kedua metode</p>
+        </div>
+        <div class="chart-container" style="height: 300px;">
+          <canvas id="chart"></canvas>
+        </div>
+      </div>
+
+      <!-- Results Table -->
+      <div class="card rounded-2xl overflow-hidden fade-in-up">
+        <div class="px-8 py-6 border-b border-border-color bg-gradient-to-r from-bg-tertiary to-bg-secondary">
+          <h2 class="text-2xl font-bold text-text-primary">Hasil Crawling</h2>
+          <p class="text-text-secondary text-sm mt-1">Detail setiap URL yang berhasil diproses</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-border-color bg-bg-tertiary">
+                <th class="px-8 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">URL</th>
+                <th class="px-8 py-4 text-left text-xs font-bold text-text-secondary uppercase tracking-wider">Status</th>
+                <th class="px-8 py-4 text-center text-xs font-bold text-text-secondary uppercase tracking-wider">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="resultTable" class="divide-y divide-border-color">
+              <!-- Results akan ditampilkan di sini -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
 
   <!-- Footer -->
-  <footer class="mt-10 text-gray-500 text-sm">
-    Dibuat oleh <span class="text-cyan-400 font-semibold">Abiyyu</span> — Pemrograman Jaringan 🧠
+  <footer class="mt-16 pt-8 border-t border-border-color text-center text-sm text-text-secondary">
+    <p>Dibuat oleh <span class="text-accent font-semibold">Abiyyu</span> — Pemrograman Jaringan 💻</p>
   </footer>
 
-  <!-- Chart.js Script -->
   <script>
-    const ctx = document.getElementById('chart').getContext('2d');
-    new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ['Single Thread', 'Multi Thread'],
-        datasets: [{
-          label: 'Waktu Eksekusi (detik)',
-          data: [{{ single_time }}, {{ multi_time }}],
-          backgroundColor: ['#f87171', '#34d399']
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { labels: { color: '#e2e8f0' } },
-          title: {
-            display: true,
-            text: 'Perbandingan Kecepatan Eksekusi',
-            color: '#a5b4fc',
-            font: { size: 16 }
-          }
-        },
-        scales: {
-          x: { ticks: { color: '#e2e8f0' }, grid: { color: '#475569' } },
-          y: { ticks: { color: '#e2e8f0' }, grid: { color: '#475569' } }
-        }
+    const startBtn = document.getElementById('startBtn');
+    const loading = document.getElementById('loading');
+    const results = document.getElementById('results');
+    const singleTime = document.getElementById('singleTime');
+    const multiTime = document.getElementById('multiTime');
+    const resultTable = document.getElementById('resultTable');
+    const themeToggle = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeText = document.getElementById('themeText');
+    let chart = null;
+
+    const initTheme = () => {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      if (savedTheme === 'light') {
+        document.documentElement.classList.add('light');
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'Light';
+      } else {
+        document.documentElement.classList.remove('light');
+        themeIcon.textContent = '🌙';
+        themeText.textContent = 'Dark';
       }
+    };
+
+    themeToggle.addEventListener('click', () => {
+      const isLight = document.documentElement.classList.contains('light');
+      if (isLight) {
+        document.documentElement.classList.remove('light');
+        localStorage.setItem('theme', 'dark');
+        themeIcon.textContent = '🌙';
+        themeText.textContent = 'Dark';
+      } else {
+        document.documentElement.classList.add('light');
+        localStorage.setItem('theme', 'light');
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'Light';
+      }
+    });
+
+    initTheme();
+
+    // Start Scraping
+    startBtn.addEventListener('click', async () => {
+      startBtn.disabled = true;
+      startBtn.classList.add("opacity-60");
+      loading.classList.remove('hidden');
+      results.classList.add('hidden');
+
+      const response = await fetch('/start');
+      const data = await response.json();
+
+      singleTime.textContent = data.single_time + ' detik';
+      multiTime.textContent = data.multi_time + ' detik';
+
+      resultTable.innerHTML = '';
+      data.multi_results.forEach(r => {
+        const isSuccess = r.status.includes('berhasil');
+        const statusBadge = isSuccess ? 'badge-success' : 'badge-error';
+        const viewButton = isSuccess
+          ? `<a href="/hasil/${r.file}" target="_blank" class="inline-flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-accent-primary to-accent-secondary text-white rounded-lg text-sm font-bold hover:shadow-lg transition-all hover:scale-105">
+              🔗 Lihat
+            </a>`
+          : `<span class="text-text-secondary text-sm font-medium">Gagal</span>`;
+
+        resultTable.innerHTML += `
+          <tr class="hover:bg-bg-tertiary transition-colors">
+            <td class="px-8 py-4 text-sm font-mono text-text-secondary">${r.url}</td>
+            <td class="px-8 py-4 text-sm"><span class="table-status-badge ${statusBadge}">${r.status}</span></td>
+            <td class="px-8 py-4 text-center">${viewButton}</td>
+          </tr>`;
+      });
+
+      results.classList.remove('hidden');
+      loading.classList.add('hidden');
+      startBtn.disabled = false;
+      startBtn.classList.remove('opacity-60');
+
+      const ctx = document.getElementById('chart').getContext('2d');
+      if (chart) chart.destroy();
+      
+      const isDark = !document.documentElement.classList.contains('light');
+      const textColor = isDark ? '#b0b8d4' : '#6b7280';
+      const gridColor = isDark ? '#2a3055' : '#e5e7eb';
+      const bgColor = isDark ? '#1a1f3a' : '#f3f4f6';
+
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Single Thread', 'Multi Thread'],
+          datasets: [{
+            label: 'Waktu Eksekusi (detik)',
+            data: [data.single_time, data.multi_time],
+            backgroundColor: ['#ff6b6b', '#10b981'],
+            borderRadius: 12,
+            borderSkipped: false,
+            barThickness: 60,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false,
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: textColor, font: { weight: 600 } },
+              grid: { color: gridColor, drawBorder: false },
+              backgroundColor: bgColor,
+            },
+            y: {
+              ticks: { color: textColor, font: { weight: 600 } },
+              grid: { color: gridColor, drawBorder: false },
+              backgroundColor: bgColor,
+              beginAtZero: true,
+            }
+          }
+        }
+      });
     });
   </script>
 
