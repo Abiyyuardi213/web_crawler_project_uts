@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Crawler Multithreading</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen flex flex-col items-center p-6">
+
+  <!-- Header -->
+  <header class="text-center mb-10">
+    <h1 class="text-4xl font-bold text-cyan-400 mb-2">🕸️ Web Crawler Multithreading</h1>
+    <p class="text-gray-400">Perbandingan waktu eksekusi single-thread vs multi-thread</p>
+  </header>
+
+  <!-- Statistik -->
+  <section class="grid md:grid-cols-2 gap-6 w-full max-w-5xl mb-10">
+    <div class="bg-gray-800 p-6 rounded-2xl shadow-lg text-center border border-gray-700">
+      <h2 class="text-xl font-semibold text-gray-200 mb-2">Single Thread</h2>
+      <p class="text-3xl font-bold text-red-400">{{ single_time }} <span class="text-lg">detik</span></p>
+    </div>
+    <div class="bg-gray-800 p-6 rounded-2xl shadow-lg text-center border border-gray-700">
+      <h2 class="text-xl font-semibold text-gray-200 mb-2">Multi Thread</h2>
+      <p class="text-3xl font-bold text-emerald-400">{{ multi_time }} <span class="text-lg">detik</span></p>
+    </div>
+  </section>
+
+  <!-- Grafik -->
+  <section class="bg-gray-800 rounded-2xl shadow-lg p-6 w-full max-w-5xl mb-10 border border-gray-700">
+    <h2 class="text-xl font-semibold text-gray-200 mb-4 text-center">Grafik Perbandingan Waktu</h2>
+    <canvas id="chart" height="120"></canvas>
+  </section>
+
+  <!-- Tabel hasil -->
+  <section class="bg-gray-800 rounded-2xl shadow-lg p-6 w-full max-w-5xl border border-gray-700">
+    <h2 class="text-xl font-semibold text-gray-200 mb-4 text-center">Hasil Crawling</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full border border-gray-700">
+        <thead class="bg-gray-700 text-gray-300">
+          <tr>
+            <th class="px-4 py-2 border-b border-gray-600 text-left">URL</th>
+            <th class="px-4 py-2 border-b border-gray-600 text-left">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in multi_results %}
+          <tr class="hover:bg-gray-700 transition">
+            <td class="px-4 py-2 border-b border-gray-700">{{ r.url }}</td>
+            <td class="px-4 py-2 border-b border-gray-700">
+              {% if "berhasil" in r.status %}
+              <span class="text-emerald-400 font-semibold">{{ r.status }}</span>
+              {% else %}
+              <span class="text-red-400 font-semibold">{{ r.status }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="mt-10 text-gray-500 text-sm">
+    Dibuat oleh <span class="text-cyan-400 font-semibold">Abiyyu</span> — Pemrograman Jaringan 🧠
+  </footer>
+
+  <!-- Chart.js Script -->
+  <script>
+    const ctx = document.getElementById('chart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Single Thread', 'Multi Thread'],
+        datasets: [{
+          label: 'Waktu Eksekusi (detik)',
+          data: [{{ single_time }}, {{ multi_time }}],
+          backgroundColor: ['#f87171', '#34d399']
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: '#e2e8f0' } },
+          title: {
+            display: true,
+            text: 'Perbandingan Kecepatan Eksekusi',
+            color: '#a5b4fc',
+            font: { size: 16 }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#e2e8f0' }, grid: { color: '#475569' } },
+          y: { ticks: { color: '#e2e8f0' }, grid: { color: '#475569' } }
+        }
+      }
+    });
+  </script>
+
+</body>
+</html>
